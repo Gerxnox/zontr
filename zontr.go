@@ -4,62 +4,48 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
-	"strings"
 )
 
-func checkZoneTransfer(domain string) {
-	fmt.Printf("Checking zone transfer for: %s\n", domain)
+func main() {
+	var domains []string
 
-	// Perform a DNS zone transfer
-	cmd := exec.Command("dig", "axfr", fmt.Sprintf("@%s", domain))
-	output, err := cmd.CombinedOutput()
+	// Check if there are command-line arguments
+	if len(os.Args) > 1 {
+		// Use the provided file path
+		filePath := os.Args[1]
 
-	if err != nil {
-		fmt.Printf("Error checking zone transfer for %s: %v\n", domain, err)
-		return
-	}
-
-	result := string(output)
-
-	// Check if the result contains a transfer failed message
-	if strings.Contains(result, "Transfer failed") {
-		fmt.Printf("Zone transfer failed for %s\n", domain)
-	} else {
-		fmt.Printf("Zone transfer may be possible for %s\n", domain)
-
-		// Save the result to a file
-		fileName := fmt.Sprintf("zone_transfer_%s.txt", domain)
-		err := os.WriteFile(fileName, []byte(result), 0644)
+		// Open the file
+		file, err := os.Open(filePath)
 		if err != nil {
-			fmt.Printf("Error saving zone transfer result for %s: %v\n", domain, err)
-		} else {
-			fmt.Printf("Zone transfer result saved to %s\n", fileName)
+			fmt.Println("Error opening file:", err)
+			os.Exit(1)
+		}
+		defer file.Close()
+
+		// Read domains from the file
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			domains = append(domains, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			fmt.Println("Error reading file:", err)
+			os.Exit(1)
+		}
+	} else {
+		// Read domains from stdin
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			domains = append(domains, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			fmt.Println("Error reading stdin:", err)
+			os.Exit(1)
 		}
 	}
 
-	fmt.Println("----------------------------------------------")
-}
-
-func main() {
-	// Replace 'domains.txt' with the path to your domains list file
-	domainsFile := "domains.txt"
-
-	file, err := os.Open(domainsFile)
-	if err != nil {
-		fmt.Printf("Error opening file %s: %v\n", domainsFile, err)
-		os.Exit(1)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		domain := scanner.Text()
-		checkZoneTransfer(domain)
-	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Printf("Error reading file %s: %v\n", domainsFile, err)
-		os.Exit(1)
+	// Process domains
+	for _, domain := range domains {
+		// Add your zontr logic here
+		fmt.Println("Processing domain:", domain)
 	}
 }
